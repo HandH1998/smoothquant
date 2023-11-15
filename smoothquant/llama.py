@@ -198,7 +198,9 @@ class Int8LlamaMLP(nn.Module):
         self.gate_proj = W8A8BFP32OFP32Linear(self.hidden_size, self.intermediate_size)
 
         self.up_proj = W8A8BFP32OFP32Linear(self.hidden_size, self.intermediate_size)
-        self.down_proj = W8A8BFP32OFP32LinearWithSFactor(self.intermediate_size, self.hidden_size)
+        # self.down_proj = W8A8BFP32OFP32LinearWithSFactor(self.intermediate_size, self.hidden_size)
+        # down_proj uses fp16 gemm
+        self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size)
         # silu_and_mul_kernel in vLLM can be a reference of SwiGLU
         self.act_fn = SiLUActivation()
     
@@ -226,9 +228,11 @@ class Int8LlamaMLP(nn.Module):
 
         int8Mlp.gate_proj = gateup_list[0]
         int8Mlp.up_proj = gateup_list[1]
-        int8Mlp.down_proj = W8A8BFP32OFP32LinearWithSFactor.from_float(
-            module.down_proj, 
-            down_input_scale)
+        # int8Mlp.down_proj = W8A8BFP32OFP32LinearWithSFactor.from_float(
+        #     module.down_proj, 
+        #     down_input_scale)
+        # down_proj uses fp16 gemm
+        int8Mlp.down_proj = module.down_proj
 
         return int8Mlp
         
