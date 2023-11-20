@@ -47,7 +47,9 @@ class Int8LlamaAttention(nn.Module):
         self.v_proj = W8A8BFP32OFP32Linear(self.hidden_size, self.num_heads * self.head_dim)
         self.q_proj = W8A8BFP32OFP32Linear(self.hidden_size, self.num_heads * self.head_dim)
         # out is fp32
-        self.o_proj = W8A8BFP32OFP32LinearWithSFactor(self.num_heads * self.head_dim, self.hidden_size)
+        # self.o_proj = W8A8BFP32OFP32LinearWithSFactor(self.num_heads * self.head_dim, self.hidden_size)
+        # o_proj use fp16
+        self.o_proj = nn.Linear(self.num_heads * self.head_dim, self.hidden_size)
 
         self.rotary_emb = LlamaRotaryEmbedding(self.head_dim, max_position_embeddings=self.max_position_embeddings)
     
@@ -80,8 +82,9 @@ class Int8LlamaAttention(nn.Module):
         int8_module.k_proj = qkv_list[1]
         int8_module.v_proj = qkv_list[2]
 
-        int8_module.o_proj = W8A8BFP32OFP32LinearWithSFactor.from_float(
-            module.o_proj, out_input_scale)
+        # int8_module.o_proj = W8A8BFP32OFP32LinearWithSFactor.from_float(
+        #     module.o_proj, out_input_scale)
+        int8_module.o_proj = module.o_proj
         return int8_module
     
     @torch.no_grad()
